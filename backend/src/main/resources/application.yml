@@ -23,7 +23,7 @@ spring:
     properties:
       hibernate:
         format_sql: false
-        generate_statistics: true
+        generate_statistics: false
         jdbc:
           batch_size: 50
         order_inserts: true
@@ -90,7 +90,7 @@ n8n:
   webhook-url: http://localhost:5678/webhook
 
 server:
-  port: 8080
+  port: ${PORT:8080}
 
 # Actuator Config
 management:
