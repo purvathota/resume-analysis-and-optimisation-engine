@@ -1,0 +1,28 @@
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant Backend
+    participant S3
+    participant OpenAI
+    participant DB as PostgreSQL
+
+    User->>Frontend: Upload Resume PDF + JD
+    Frontend->>Backend: POST /api/resumes/upload
+    Backend->>S3: Store Original PDF
+    S3-->>Backend: Return S3 Key
+    Backend->>Backend: Parse PDF Text (PDFBox)
+    Backend->>DB: Save Resume Entity
+    Backend-->>Frontend: Return Resume ID
+
+    User->>Frontend: Click "Optimize"
+    Frontend->>Backend: POST /api/resumes/{id}/optimize
+    Backend->>OpenAI: Send Original Text + JD + Rules
+    Note right of OpenAI: Execute Strict<br/>Truthfulness<br/>Guard System
+    OpenAI-->>Backend: Return Optimized JSON
+    Backend->>Backend: Calculate Integrity Scores
+    alt Integrity Score < 95%
+        Backend-->>Frontend: Reject Optimization
+    else Integrity Score >= 95%
+        Backend->>DB: Update Resume Entity
+        Backend-->>Frontend: Return Optimized Content
+    end

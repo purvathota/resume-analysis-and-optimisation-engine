@@ -1,0 +1,39 @@
+sequenceDiagram
+    participant Client as Frontend Client
+    participant Nginx as Nginx (Reverse Proxy)
+    participant Auth as Spring Security Filter
+    participant JWT as JWT Provider
+    participant API as Backend Controllers
+    participant S3 as AWS S3
+
+    %% Authentication Flow
+    Client->>Nginx: POST /api/auth/login (credentials)
+    Nginx->>Auth: Forward Request
+    Auth->>API: Authenticate User
+    API->>JWT: Generate Token
+    JWT-->>API: Signed JWT (HS256)
+    API-->>Client: Return JWT Token
+
+    %% Authorization Flow
+    Client->>Nginx: GET /api/resumes
+    Note right of Client: Authorization: Bearer <token>
+    Nginx->>Auth: Forward Request
+    Auth->>JWT: Validate Signature & Expiration
+    alt Invalid Token
+        JWT-->>Auth: Validation Failed
+        Auth-->>Client: 401 Unauthorized
+    else Valid Token
+        JWT-->>Auth: User Claims (Role/ID)
+        Auth->>API: Process Request
+        API->>API: Verify Resource Ownership (UserId check)
+        API-->>Client: 200 OK + Data
+    end
+
+    %% Secure S3 Access
+    Client->>Nginx: POST /api/resumes/upload
+    Nginx->>Auth: Forward + Validate JWT
+    Auth->>API: Authorized Upload Request
+    API->>S3: PutObject (Using IAM Roles / Access Keys)
+    Note right of API: Private Bucket Policy
+    S3-->>API: S3 Object URI
+    API-->>Client: 201 Created

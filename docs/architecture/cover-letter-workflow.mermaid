@@ -1,0 +1,22 @@
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant Backend
+    participant DB as PostgreSQL
+    participant OpenAI
+
+    User->>Frontend: Enter Company Name & Role
+    User->>Frontend: Click "Generate Cover Letter"
+    Frontend->>Backend: POST /api/cover-letters
+    Backend->>DB: Fetch Base Resume & JD
+    Backend->>OpenAI: Send Resume Data + Job Context
+    Note right of OpenAI: Execute Domain<br/>Traceability<br/>Validation
+    OpenAI-->>Backend: Return Cover Letter + Traceability Data
+    
+    Backend->>Backend: Validate Traceability References
+    alt References Invented Data
+        Backend-->>Frontend: Generation Failed (Untruthful)
+    else All References Valid
+        Backend->>DB: Create CoverLetterVersion Entity
+        Backend-->>Frontend: Return CoverLetterVersion
+    end

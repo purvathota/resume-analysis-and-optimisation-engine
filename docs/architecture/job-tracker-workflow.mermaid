@@ -1,0 +1,26 @@
+sequenceDiagram
+    participant User
+    participant Dashboard
+    participant Backend
+    participant DB as PostgreSQL
+
+    User->>Dashboard: Views Job Tracker
+    Dashboard->>Backend: GET /api/job-applications
+    Backend->>DB: Fetch user applications
+    DB-->>Backend: List<JobApplication>
+    Backend-->>Dashboard: Return JSON array
+    Dashboard->>Dashboard: Render Kanban/Table + Analytics
+
+    User->>Dashboard: Click "Create from Cover Letter"
+    Dashboard->>Backend: POST /api/job-applications (status: SAVED)
+    Backend->>DB: Check CoverLetter ID
+    Backend->>DB: Create JobApplication Entity
+    DB-->>Backend: Created Entity
+    Backend-->>Dashboard: Return New Application
+    Dashboard->>User: Display Success Toast
+
+    User->>Dashboard: Update Status to "INTERVIEWING"
+    Dashboard->>Backend: PUT /api/job-applications/{id}/status
+    Backend->>DB: Update Status
+    Backend-->>Dashboard: 200 OK
+    Dashboard->>Dashboard: Refresh Analytics KPIs

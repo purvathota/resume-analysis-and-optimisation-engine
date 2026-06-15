@@ -1,0 +1,123 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: resume-optimizer-postgres
+    environment:
+      POSTGRES_USER: resumeoptimizer
+      POSTGRES_PASSWORD: resumeoptimizer123
+      POSTGRES_DB: resumeoptimizer
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - resume-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U resumeoptimizer -d resumeoptimizer"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # n8n Workflow Automation
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    container_name: resume-optimizer-n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD:-admin}
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - WEBHOOK_URL=http://localhost:5678/
+      - GENERIC_TIMEZONE=Europe/London
+    volumes:
+      - n8n-data:/home/node/.n8n
+    networks:
+      - resume-network
+
+  # MailHog for Local SMTP Testing
+  mailhog:
+    image: mailhog/mailhog
+    container_name: resume-optimizer-mailhog
+    ports:
+      - "1025:1025" # SMTP
+      - "8025:8025" # Web UI
+  # Spring Boot Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: resume-optimizer-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-resumeoptimizer}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-resumeoptimizer}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-resumeoptimizer123}
+      - JWT_SECRET=${JWT_SECRET}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - N8N_WEBHOOK_URL=http://n8n:5678/webhook/custom-webhook-id
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - resume-network
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: resume-optimizer-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - resume-network
+
+  # Prometheus Monitoring
+  prometheus:
+    image: prom/prometheus:v2.50.1
+    container_name: resume-optimizer-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - resume-network
+    depends_on:
+      - backend
+
+  # Grafana Dashboards
+  grafana:
+    image: grafana/grafana-oss:10.4.0
+    container_name: resume-optimizer-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - resume-network
+    depends_on:
+      - prometheus
+
+networks:
+  resume-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  n8n-data:
+  prometheus-data:
+  grafana-data:

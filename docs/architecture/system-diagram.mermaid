@@ -1,0 +1,38 @@
+graph TD
+    %% Frontend Layer
+    subgraph Frontend ["Frontend (React, TypeScript)"]
+        UI["React UI (Dashboard)"]
+        Services["Frontend Services (Axios)"]
+        UI --> Services
+    end
+
+    %% Backend Layer
+    subgraph Backend ["Backend (Spring Boot 3.5, Java 21)"]
+        Controllers["REST Controllers"]
+        ServiceLayer["Service Layer (Business Logic)"]
+        DataLayer["Data Access (Spring Data JPA)"]
+        Security["Security Layer (JWT Filter)"]
+        
+        Controllers --> Security
+        Security --> ServiceLayer
+        ServiceLayer --> DataLayer
+    end
+
+    %% Database Layer
+    subgraph Database ["Database"]
+        PostgreSQL[(PostgreSQL)]
+    end
+
+    %% External Services
+    subgraph External ["External Integrations"]
+        OpenAI["OpenAI API (GPT-4o)"]
+        S3["AWS S3 (Document Storage)"]
+        n8n["n8n (Workflow Engine)"]
+    end
+
+    %% Connections
+    Services -- "HTTPS/REST" --> Controllers
+    DataLayer -- "JDBC" --> PostgreSQL
+    ServiceLayer -- "REST" --> OpenAI
+    ServiceLayer -- "AWS SDK" --> S3
+    ServiceLayer -- "Webhook" --> n8n
