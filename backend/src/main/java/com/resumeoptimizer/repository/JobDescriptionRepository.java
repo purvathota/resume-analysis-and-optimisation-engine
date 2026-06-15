@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface JobDescriptionRepository extends JpaRepository<JobDescription, Long> {
     List<JobDescription> findByUserId(Long userId);
+    java.util.Optional<JobDescription> findByIdAndUserId(Long id, Long userId);
 }

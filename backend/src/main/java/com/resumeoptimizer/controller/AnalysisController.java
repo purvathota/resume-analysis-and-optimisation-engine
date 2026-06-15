@@ -4,6 +4,8 @@ import com.resumeoptimizer.entity.Analysis;
 import com.resumeoptimizer.exception.AiServiceException;
 import com.resumeoptimizer.service.analysis.AnalysisService;
 import com.resumeoptimizer.service.document.DocumentExportService;
+import com.resumeoptimizer.security.CustomUserDetails;
+import com.resumeoptimizer.repository.ResumeRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -26,14 +29,16 @@ public class AnalysisController {
     private final AnalysisService analysisService;
     private final DocumentExportService documentExportService;
     private final com.resumeoptimizer.repository.AnalysisRepository analysisRepository;
+    private final ResumeRepository resumeRepository;
 
     @PostMapping("/{resumeId}/ats")
     public ResponseEntity<?> performAtsAnalysis(
             @PathVariable Long resumeId,
-            @RequestParam Long jobDescriptionId) {
+            @RequestParam Long jobDescriptionId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         try {
             log.info("Starting ATS analysis for resumeId={}, jobDescriptionId={}", resumeId, jobDescriptionId);
-            Analysis analysis = analysisService.performAtsAnalysis(resumeId, jobDescriptionId);
+            Analysis analysis = analysisService.performAtsAnalysis(resumeId, jobDescriptionId, userDetails.getUser());
             log.info("ATS analysis completed successfully. ATS Score: {}", analysis.getAtsScore());
             return ResponseEntity.ok(analysis);
         } catch (AiServiceException e) {
@@ -62,10 +67,11 @@ public class AnalysisController {
     @PostMapping("/{resumeId}/recruiter")
     public ResponseEntity<?> performRecruiterReview(
             @PathVariable Long resumeId,
-            @RequestParam Long jobDescriptionId) {
+            @RequestParam Long jobDescriptionId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         try {
             log.info("Starting Recruiter Review for resumeId={}, jobDescriptionId={}", resumeId, jobDescriptionId);
-            Analysis analysis = analysisService.performRecruiterReview(resumeId, jobDescriptionId);
+            Analysis analysis = analysisService.performRecruiterReview(resumeId, jobDescriptionId, userDetails.getUser());
             log.info("Recruiter Review completed successfully. Fit Score: {}", analysis.getRecruiterFitScore());
             return ResponseEntity.ok(analysis);
         } catch (AiServiceException e) {
@@ -94,10 +100,11 @@ public class AnalysisController {
     @PostMapping("/{resumeId}/optimize")
     public ResponseEntity<?> performOptimization(
             @PathVariable Long resumeId,
-            @RequestParam Long jobDescriptionId) {
+            @RequestParam Long jobDescriptionId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         try {
             log.info("Starting Resume Optimization for resumeId={}, jobDescriptionId={}", resumeId, jobDescriptionId);
-            Analysis analysis = analysisService.performResumeOptimization(resumeId, jobDescriptionId);
+            Analysis analysis = analysisService.performResumeOptimization(resumeId, jobDescriptionId, userDetails.getUser());
             log.info("Resume Optimization completed successfully.");
             return ResponseEntity.ok(analysis);
         } catch (AiServiceException e) {
@@ -127,8 +134,12 @@ public class AnalysisController {
     @GetMapping("/{resumeId}/export/pdf")
     public ResponseEntity<byte[]> exportPdf(
             @PathVariable Long resumeId,
-            @RequestParam Long jobDescriptionId) {
+            @RequestParam Long jobDescriptionId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         try {
+            resumeRepository.findByIdAndUserId(resumeId, userDetails.getUser().getId())
+                    .orElseThrow(() -> new RuntimeException("Analysis not found"));
+
             Analysis analysis = analysisRepository.findByResumeIdAndJobDescriptionId(resumeId, jobDescriptionId)
                     .orElseThrow(() -> new RuntimeException("Analysis not found"));
             
@@ -149,8 +160,12 @@ public class AnalysisController {
     @GetMapping("/{resumeId}/export/docx")
     public ResponseEntity<byte[]> exportDocx(
             @PathVariable Long resumeId,
-            @RequestParam Long jobDescriptionId) {
+            @RequestParam Long jobDescriptionId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         try {
+            resumeRepository.findByIdAndUserId(resumeId, userDetails.getUser().getId())
+                    .orElseThrow(() -> new RuntimeException("Analysis not found"));
+
             Analysis analysis = analysisRepository.findByResumeIdAndJobDescriptionId(resumeId, jobDescriptionId)
                     .orElseThrow(() -> new RuntimeException("Analysis not found"));
             

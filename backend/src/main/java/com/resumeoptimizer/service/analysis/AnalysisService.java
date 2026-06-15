@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.resumeoptimizer.entity.Analysis;
 import com.resumeoptimizer.entity.JobDescription;
 import com.resumeoptimizer.entity.Resume;
+import com.resumeoptimizer.entity.User;
 import com.resumeoptimizer.repository.AnalysisRepository;
 import com.resumeoptimizer.repository.JobDescriptionRepository;
 import com.resumeoptimizer.repository.ResumeRepository;
@@ -30,10 +31,10 @@ public class AnalysisService {
     private final ObjectMapper objectMapper;
     private final ResumeValidationService resumeValidationService;
 
-    public Analysis performAtsAnalysis(Long resumeId, Long jobDescriptionId) throws Exception {
-        Resume resume = resumeRepository.findById(resumeId)
+    public Analysis performAtsAnalysis(Long resumeId, Long jobDescriptionId, User user) throws Exception {
+        Resume resume = resumeRepository.findByIdAndUserId(resumeId, user.getId())
                 .orElseThrow(() -> new RuntimeException("Resume not found"));
-        JobDescription jd = jobDescriptionRepository.findById(jobDescriptionId)
+        JobDescription jd = jobDescriptionRepository.findByIdAndUserId(jobDescriptionId, user.getId())
                 .orElseThrow(() -> new RuntimeException("Job Description not found"));
 
         Analysis analysis = analysisRepository.findByResumeIdAndJobDescriptionId(resumeId, jobDescriptionId)
@@ -64,13 +65,13 @@ public class AnalysisService {
         return analysisRepository.save(analysis);
     }
 
-    public Analysis performRecruiterReview(Long resumeId, Long jobDescriptionId) throws Exception {
+    public Analysis performRecruiterReview(Long resumeId, Long jobDescriptionId, User user) throws Exception {
         Analysis analysis = analysisRepository.findByResumeIdAndJobDescriptionId(resumeId, jobDescriptionId)
                 .orElseThrow(() -> new RuntimeException("ATS Analysis must be performed first"));
 
-        Resume resume = resumeRepository.findById(resumeId)
+        Resume resume = resumeRepository.findByIdAndUserId(resumeId, user.getId())
                 .orElseThrow(() -> new RuntimeException("Resume not found"));
-        JobDescription jd = jobDescriptionRepository.findById(jobDescriptionId)
+        JobDescription jd = jobDescriptionRepository.findByIdAndUserId(jobDescriptionId, user.getId())
                 .orElseThrow(() -> new RuntimeException("Job Description not found"));
 
         String systemPrompt = promptTemplateService.getRecruiterReviewSystemPrompt();
@@ -92,13 +93,13 @@ public class AnalysisService {
         return analysisRepository.save(analysis);
     }
 
-    public Analysis performResumeOptimization(Long resumeId, Long jobDescriptionId) throws Exception {
+    public Analysis performResumeOptimization(Long resumeId, Long jobDescriptionId, User user) throws Exception {
         Analysis analysis = analysisRepository.findByResumeIdAndJobDescriptionId(resumeId, jobDescriptionId)
                 .orElseThrow(() -> new RuntimeException("Recruiter Review must be performed first"));
 
-        Resume resume = resumeRepository.findById(resumeId)
+        Resume resume = resumeRepository.findByIdAndUserId(resumeId, user.getId())
                 .orElseThrow(() -> new RuntimeException("Resume not found"));
-        JobDescription jd = jobDescriptionRepository.findById(jobDescriptionId)
+        JobDescription jd = jobDescriptionRepository.findByIdAndUserId(jobDescriptionId, user.getId())
                 .orElseThrow(() -> new RuntimeException("Job Description not found"));
 
         String systemPrompt = promptTemplateService.getResumeOptimizationSystemPrompt();
