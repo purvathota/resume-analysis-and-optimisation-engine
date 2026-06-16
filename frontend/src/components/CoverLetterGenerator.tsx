@@ -91,7 +91,11 @@ const CoverLetterGenerator: React.FC = () => {
             >
               <option value="">-- Choose a JD --</option>
               {jds.map(jd => (
-                <option key={jd.id} value={jd.id}>{jd.fileName}</option>
+                <option key={jd.id} value={jd.id}>
+                  {jd.company && jd.title 
+                    ? `${jd.company} - ${jd.title}` 
+                    : jd.fileName || `Pasted Job Description #${jd.id}`}
+                </option>
               ))}
             </select>
           </div>
