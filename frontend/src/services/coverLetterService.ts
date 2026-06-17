@@ -70,3 +70,7 @@ export const downloadCoverLetterDocx = async (versionId: number, companyName: st
   link.click();
   link.remove();
 };
+
+export const deleteCoverLetterVersion = async (versionId: number): Promise<void> => {
+  await api.delete(`/cover-letters/versions/${versionId}`);
+};

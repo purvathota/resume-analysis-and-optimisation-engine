@@ -60,7 +60,8 @@ public class JobApplication {
     @JoinColumn(name = "cover_letter_id")
     private CoverLetter coverLetter;
 
-    @Column(name = "created_at", insertable = false, updatable = false)
+    @org.hibernate.annotations.CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")

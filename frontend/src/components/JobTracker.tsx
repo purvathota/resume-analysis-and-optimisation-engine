@@ -38,7 +38,7 @@ const JobTracker: React.FC = () => {
   // Filter & Sort State
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<ApplicationStatus | ''>('');
-  const [sortField, setSortField] = useState<keyof JobApplicationResponse>('appliedDate');
+  const [sortField, setSortField] = useState<keyof JobApplicationResponse>('createdAt');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {

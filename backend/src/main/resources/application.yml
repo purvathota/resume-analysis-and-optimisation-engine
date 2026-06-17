@@ -58,6 +58,14 @@ spring:
           starttls:
             enable: false
 
+sentry:
+  dsn: ${SENTRY_DSN:}
+  environment: ${SENTRY_ENVIRONMENT:local}
+  send-default-pii: false
+  logging:
+    enabled: true
+    minimum-event-level: error
+
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
             

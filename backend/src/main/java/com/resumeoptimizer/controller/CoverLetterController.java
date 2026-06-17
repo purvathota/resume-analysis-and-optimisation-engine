@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import org.springframework.transaction.annotation.Transactional;
+
 @RestController
 @RequestMapping("/api/cover-letters")
 @RequiredArgsConstructor
@@ -42,6 +44,7 @@ public class CoverLetterController {
     }
 
     @GetMapping
+    @Transactional(readOnly = true)
     public ResponseEntity<List<CoverLetterResponse>> getUserCoverLetters(@AuthenticationPrincipal CustomUserDetails userDetails) {
         List<CoverLetter> list = coverLetterRepository.findByUserIdOrderByCreatedAtDesc(userDetails.getUser().getId());
         List<CoverLetterResponse> resList = list.stream().map(coverLetter -> {
@@ -67,6 +70,7 @@ public class CoverLetterController {
     }
 
     @GetMapping("/{id}")
+    @Transactional(readOnly = true)
     public ResponseEntity<CoverLetterResponse> getCoverLetter(@PathVariable Long id, @AuthenticationPrincipal CustomUserDetails userDetails) {
         CoverLetter coverLetter = coverLetterRepository.findByIdAndUserId(id, userDetails.getUser().getId())
                 .orElseThrow(() -> new RuntimeException("Cover letter not found"));
@@ -92,6 +96,7 @@ public class CoverLetterController {
     }
 
     @GetMapping("/versions/{versionId}/pdf")
+    @Transactional(readOnly = true)
     public ResponseEntity<byte[]> exportPdf(@PathVariable Long versionId, @AuthenticationPrincipal CustomUserDetails userDetails) throws Exception {
         com.resumeoptimizer.entity.CoverLetterVersion clv = coverLetterRepository.findByUserIdOrderByCreatedAtDesc(userDetails.getUser().getId()).stream()
                 .flatMap(cl -> cl.getVersions().stream())
@@ -108,6 +113,7 @@ public class CoverLetterController {
     }
 
     @GetMapping("/versions/{versionId}/docx")
+    @Transactional(readOnly = true)
     public ResponseEntity<byte[]> exportDocx(@PathVariable Long versionId, @AuthenticationPrincipal CustomUserDetails userDetails) throws Exception {
         com.resumeoptimizer.entity.CoverLetterVersion clv = coverLetterRepository.findByUserIdOrderByCreatedAtDesc(userDetails.getUser().getId()).stream()
                 .flatMap(cl -> cl.getVersions().stream())
@@ -121,5 +127,11 @@ public class CoverLetterController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"CoverLetter_" + clv.getCoverLetter().getCompanyName() + "_V" + clv.getVersionNumber() + ".docx\"")
                 .contentType(MediaType.valueOf("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
                 .body(docxBytes);
+    }
+
+    @DeleteMapping("/versions/{versionId}")
+    public ResponseEntity<Void> deleteVersion(@PathVariable Long versionId, @AuthenticationPrincipal CustomUserDetails userDetails) {
+        coverLetterService.deleteVersion(versionId, userDetails.getUser());
+        return ResponseEntity.noContent().build();
     }
 }

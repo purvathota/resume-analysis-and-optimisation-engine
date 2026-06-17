@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface CoverLetterVersionRepository extends JpaRepository<CoverLetterVersion, Long> {
     List<CoverLetterVersion> findByCoverLetterIdOrderByVersionNumberDesc(Long coverLetterId);
+    java.util.Optional<CoverLetterVersion> findByIdAndCoverLetterUserId(Long versionId, Long userId);
 }

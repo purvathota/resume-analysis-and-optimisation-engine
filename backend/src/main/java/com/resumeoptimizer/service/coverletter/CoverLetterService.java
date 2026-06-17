@@ -28,6 +28,7 @@ import java.util.Map;
 public class CoverLetterService {
 
     private final CoverLetterRepository coverLetterRepository;
+    private final com.resumeoptimizer.repository.CoverLetterVersionRepository coverLetterVersionRepository;
     private final ResumeRepository resumeRepository;
     private final JobDescriptionRepository jobDescriptionRepository;
     private final AiClientService aiClientService;
@@ -214,5 +215,18 @@ public class CoverLetterService {
             }
         }
         return true;
+    }
+
+    @Transactional
+    public void deleteVersion(Long versionId, User user) {
+        com.resumeoptimizer.entity.CoverLetterVersion version = coverLetterVersionRepository.findByIdAndCoverLetterUserId(versionId, user.getId())
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Cover letter version not found"));
+
+        if (version.getCoverLetter().getVersions().size() <= 1) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Cannot delete the only version of a cover letter.");
+        }
+
+        version.getCoverLetter().getVersions().remove(version);
+        coverLetterRepository.save(version.getCoverLetter());
     }
 }

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { type CoverLetterResponse, type CoverLetterVersionResponse, downloadCoverLetterPdf, downloadCoverLetterDocx } from '../services/coverLetterService';
+import React, { useState, useEffect } from 'react';
+import { type CoverLetterResponse, type CoverLetterVersionResponse, downloadCoverLetterPdf, downloadCoverLetterDocx, deleteCoverLetterVersion } from '../services/coverLetterService';
 import TraceabilityPanel from './TraceabilityPanel';
 import CoverLetterDiffViewer from './CoverLetterDiffViewer';
 
@@ -10,18 +10,47 @@ interface Props {
 import { createJobApplication } from '../services/jobApplicationService';
 
 const CoverLetterVersionHistory: React.FC<Props> = ({ coverLetter }) => {
+  const [localVersions, setLocalVersions] = useState<CoverLetterVersionResponse[]>(
+    [...coverLetter.versions].sort((a, b) => b.versionNumber - a.versionNumber)
+  );
+
+  useEffect(() => {
+    setLocalVersions([...coverLetter.versions].sort((a, b) => b.versionNumber - a.versionNumber));
+  }, [coverLetter]);
+
   const [selectedVersionId, setSelectedVersionId] = useState<number>(
-    coverLetter.versions.length > 0 ? coverLetter.versions[coverLetter.versions.length - 1].id : 0
+    localVersions.length > 0 ? localVersions[0].id : 0
   );
   const [compareMode, setCompareMode] = useState<boolean>(false);
   const [isCreatingApp, setIsCreatingApp] = useState(false);
 
-  const versions = [...coverLetter.versions].sort((a, b) => b.versionNumber - a.versionNumber); // Descending
-  const activeVersion = coverLetter.versions.find(v => v.id === selectedVersionId) || versions[0];
+  const versions = localVersions;
+  const activeVersion = versions.find(v => v.id === selectedVersionId) || versions[0];
   
   const previousVersion = activeVersion && activeVersion.versionNumber > 1 
-    ? coverLetter.versions.find(v => v.versionNumber === activeVersion.versionNumber - 1) 
+    ? versions.find(v => v.versionNumber < activeVersion.versionNumber) 
     : null;
+
+  const handleDeleteVersion = async (v: CoverLetterVersionResponse) => {
+    if (versions.length <= 1) {
+      alert("Cannot delete the only version of a cover letter.");
+      return;
+    }
+    if (window.confirm(`Are you sure you want to delete Version ${v.versionNumber}?`)) {
+      try {
+        await deleteCoverLetterVersion(v.id);
+        const newVersions = versions.filter(version => version.id !== v.id);
+        setLocalVersions(newVersions);
+        
+        if (selectedVersionId === v.id) {
+          setSelectedVersionId(newVersions[0].id);
+        }
+      } catch (err: any) {
+        console.error('Failed to delete version', err);
+        alert(err.response?.data?.detail || 'Failed to delete version.');
+      }
+    }
+  };
 
   const handleDownloadPdf = async (v: CoverLetterVersionResponse) => {
     try {
@@ -114,6 +143,12 @@ const CoverLetterVersionHistory: React.FC<Props> = ({ coverLetter }) => {
                       className="text-xs px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200"
                     >
                       DOCX
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleDeleteVersion(v); }}
+                      className="text-xs px-2 py-1 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400"
+                    >
+                      Delete
                     </button>
                   </div>
                 )}

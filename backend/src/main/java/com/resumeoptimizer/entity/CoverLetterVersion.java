@@ -43,6 +43,7 @@ public class CoverLetterVersion {
     @Column(name = "traceability_json", columnDefinition = "jsonb", nullable = false)
     private Map<String, Object> traceability;
 
-    @Column(name = "created_at", insertable = false, updatable = false)
+    @org.hibernate.annotations.CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 }
