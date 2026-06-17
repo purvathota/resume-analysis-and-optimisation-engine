@@ -52,11 +52,11 @@ public class CoverLetterPromptService {
                Do NOT include sender/recipient addresses in the body. Do NOT include Date. Do NOT include Name/Email headers. The system will prepend these automatically.
                Start the body directly with "Dear Hiring Manager," and end with "Kind Regards," followed by the candidate's name on a new line (if candidateName is provided in the context). If candidateName is NOT provided, simply end with "Kind Regards," and do NOT include any placeholders like [Candidate Name].
                
-               CRITICAL QUALITY RULES:
-               - NEVER mention missing or incomplete resume information.
-               - NEVER use phrases like "Although my resume does not contain specific details" or "While my resume may not explicitly state".
-               - NEVER expose internal uncertainty.
-               - If specific data is unavailable, generate a professional, confident statement mapping their existing experience to the role instead.
+               CRITICAL QUALITY AND CONFIDENCE RULES:
+               - NEVER mention, apologize for, or draw attention to missing, incomplete, or unstated resume information or skills.
+               - NEVER use any variation of disclaimers or phrases that highlight lack of direct experience, such as "Although my resume...", "While my resume...", "My resume may not explicitly show...", "Despite the lack of...", "While I do not have direct experience...", "haven't had the opportunity", "background does not directly", "not explicitly shown", "despite not having", or "may not have".
+               - NEVER expose internal uncertainty, apologies, or gaps.
+               - If a specific skill or experience is not present in the candidate's resume, focus entirely on mapping their existing transferable skills, general engineering/professional proficiency, and relevant projects to the role. Write with absolute confidence and direct authority.
                """;
     }
 

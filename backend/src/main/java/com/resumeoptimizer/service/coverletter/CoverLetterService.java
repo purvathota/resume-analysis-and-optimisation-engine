@@ -56,13 +56,51 @@ public class CoverLetterService {
         String systemPrompt = promptService.buildSystemPrompt();
         String userPrompt = promptService.buildUserPrompt(resume, jd, request.getCompanyName(), request.getRoleTitle());
 
-        String aiResponse = aiClientService.generateResponse(systemPrompt, userPrompt, true);
+        // Restrict prompt logging to DEBUG mode only. Do not log resumes or job descriptions in default production/INFO logs.
+        if (log.isDebugEnabled()) {
+            log.debug("System Prompt: {}", systemPrompt);
+            log.debug("User Prompt: {}", userPrompt);
+        }
+
+        int maxRetries = 2;
+        int attempt = 0;
+        String coverLetterBody = null;
+        Map<String, Object> traceability = null;
+        String activeSystemPrompt = systemPrompt;
+
+        while (attempt <= maxRetries) {
+            String aiResponse = aiClientService.generateResponse(activeSystemPrompt, userPrompt, true);
+
+            try {
+                Map<String, Object> responseMap = objectMapper.readValue(aiResponse, new TypeReference<>() {});
+                coverLetterBody = (String) responseMap.get("coverLetterBody");
+                traceability = (Map<String, Object>) responseMap.get("traceability");
+
+                if (!hasUncertaintyPhrases(coverLetterBody)) {
+                    break;
+                }
+
+                attempt++;
+                if (attempt > maxRetries) {
+                    log.warn("Failed to generate a confident cover letter without disclaimers after {} attempts. Returning the last generated version as fallback.", maxRetries + 1);
+                    break;
+                }
+
+                log.warn("Confidence validation failed (attempt {}). Retrying with stronger instructions.", attempt);
+                activeSystemPrompt = systemPrompt + "\n\n" +
+                    "CRITICAL WARNING FOR RETRY:\n" +
+                    "The previous output was REJECTED because it contained a disclaimer, apology, or mention of missing/incomplete resume details or lack of experience.\n" +
+                    "You MUST write a cover letter with ABSOLUTE CONFIDENCE. Do not apologize, do not mention what you do not have, and do not mention what is missing or not explicitly stated in your resume. Focus exclusively on highlighting your existing transferable skills, engineering excellence, and accomplishments.";
+            } catch (Exception e) {
+                log.error("Failed to parse AI response on attempt {}: {}", attempt, e.getMessage());
+                if (attempt >= maxRetries) {
+                    throw new RuntimeException("Failed to generate and parse cover letter output", e);
+                }
+                attempt++;
+            }
+        }
 
         try {
-            Map<String, Object> responseMap = objectMapper.readValue(aiResponse, new TypeReference<>() {});
-            String coverLetterBody = (String) responseMap.get("coverLetterBody");
-            Map<String, Object> traceability = (Map<String, Object>) responseMap.get("traceability");
-
             // Integrity Guard
             validateTraceability(resume, traceability);
 
@@ -228,5 +266,22 @@ public class CoverLetterService {
 
         version.getCoverLetter().getVersions().remove(version);
         coverLetterRepository.save(version.getCoverLetter());
+    }
+
+    boolean hasUncertaintyPhrases(String body) {
+        if (body == null) return false;
+        String lowerBody = body.toLowerCase();
+        return lowerBody.contains("while my resume") ||
+               lowerBody.contains("although my resume") ||
+               lowerBody.contains("my resume may not explicitly") ||
+               lowerBody.contains("despite the lack of") ||
+               lowerBody.contains("while i do not have direct experience") ||
+               lowerBody.contains("lack of experience") ||
+               lowerBody.contains("may not have") ||
+               lowerBody.contains("haven’t had the opportunity") ||
+               lowerBody.contains("haven't had the opportunity") ||
+               lowerBody.contains("background does not directly") ||
+               lowerBody.contains("not explicitly shown") ||
+               lowerBody.contains("despite not having");
     }
 }
