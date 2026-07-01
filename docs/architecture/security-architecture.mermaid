@@ -4,7 +4,7 @@ sequenceDiagram
     participant Auth as Spring Security Filter
     participant JWT as JWT Provider
     participant API as Backend Controllers
-    participant S3 as AWS S3
+    participant Cloud as Cloudinary Storage
 
     %% Authentication Flow
     Client->>Nginx: POST /api/auth/login (credentials)
@@ -29,11 +29,11 @@ sequenceDiagram
         API-->>Client: 200 OK + Data
     end
 
-    %% Secure S3 Access
+    %% Secure Cloud Storage Access
     Client->>Nginx: POST /api/resumes/upload
     Nginx->>Auth: Forward + Validate JWT
     Auth->>API: Authorized Upload Request
-    API->>S3: PutObject (Using IAM Roles / Access Keys)
-    Note right of API: Private Bucket Policy
-    S3-->>API: S3 Object URI
+    API->>Cloud: Upload File (Using API Secret)
+    Note right of API: Secure Storage Abstraction
+    Cloud-->>API: Secure URL
     API-->>Client: 201 Created
